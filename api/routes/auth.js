@@ -1,0 +1,314 @@
+/**
+ * Authentication Routes
+ * 
+ * Handles user authentication including signup, login, logout, and token refresh
+ */
+
+const express = require('express');
+const router = express.Router();
+const { body, validationResult } = require('express-validator');
+const supabase = require('../utils/supabase');
+const { ApiError } = require('../middleware/errorHandler');
+const { authenticate } = require('../middleware/auth');
+
+/**
+ * @swagger
+ * tags:
+ *   name: Authentication
+ *   description: User authentication endpoints
+ */
+
+/**
+ * @swagger
+ * /api/auth/signup:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Authentication]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 minLength: 6
+ *               metadata:
+ *                 type: object
+ *     responses:
+ *       201:
+ *         description: User created successfully
+ *       400:
+ *         description: Invalid input
+ */
+router.post('/signup',
+  [
+    body('email').isEmail().normalizeEmail(),
+    body('password').isLength({ min: 6 }),
+  ],
+  async (req, res, next) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        throw new ApiError(400, 'Validation failed', true, JSON.stringify(errors.array()));
+      }
+
+      const { email, password, metadata } = req.body;
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: metadata || {},
+        },
+      });
+
+      if (error) {
+        throw new ApiError(400, error.message);
+      }
+
+      res.status(201).json({
+        success: true,
+        message: 'User registered successfully',
+        data: {
+          user: data.user,
+          session: data.session,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * @swagger
+ * /api/auth/login:
+ *   post:
+ *     summary: Login user
+ *     tags: [Authentication]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *       401:
+ *         description: Invalid credentials
+ */
+router.post('/login',
+  [
+    body('email').isEmail().normalizeEmail(),
+    body('password').notEmpty(),
+  ],
+  async (req, res, next) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        throw new ApiError(400, 'Validation failed', true, JSON.stringify(errors.array()));
+      }
+
+      const { email, password } = req.body;
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        throw new ApiError(401, error.message);
+      }
+
+      res.json({
+        success: true,
+        message: 'Login successful',
+        data: {
+          user: data.user,
+          session: data.session,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     summary: Logout user
+ *     tags: [Authentication]
+ *     responses:
+ *       200:
+ *         description: Logout successful
+ */
+router.post('/logout', authenticate, async (req, res, next) => {
+  try {
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      throw new ApiError(400, error.message);
+    }
+
+    res.json({
+      success: true,
+      message: 'Logout successful',
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @swagger
+ * /api/auth/refresh:
+ *   post:
+ *     summary: Refresh access token
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refresh_token
+ *             properties:
+ *               refresh_token:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Token refreshed successfully
+ */
+router.post('/refresh',
+  [body('refresh_token').notEmpty()],
+  async (req, res, next) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        throw new ApiError(400, 'Validation failed', true, JSON.stringify(errors.array()));
+      }
+
+      const { refresh_token } = req.body;
+
+      const { data, error } = await supabase.auth.refreshSession({
+        refresh_token,
+      });
+
+      if (error) {
+        throw new ApiError(401, error.message);
+      }
+
+      res.json({
+        success: true,
+        message: 'Token refreshed successfully',
+        data: {
+          session: data.session,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * @swagger
+ * /api/auth/me:
+ *   get:
+ *     summary: Get current user
+ *     tags: [Authentication]
+ *     responses:
+ *       200:
+ *         description: Current user data
+ *       401:
+ *         description: Not authenticated
+ */
+router.get('/me', authenticate, async (req, res, next) => {
+  try {
+    res.json({
+      success: true,
+      data: {
+        user: req.user,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @swagger
+ * /api/auth/reset-password:
+ *   post:
+ *     summary: Request password reset
+ *     tags: [Authentication]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: Password reset email sent
+ */
+router.post('/reset-password',
+  [body('email').isEmail().normalizeEmail()],
+  async (req, res, next) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        throw new ApiError(400, 'Validation failed', true, JSON.stringify(errors.array()));
+      }
+
+      const { email } = req.body;
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${process.env.APP_URL || 'http://localhost:3000'}/reset-password`,
+      });
+
+      if (error) {
+        throw new ApiError(400, error.message);
+      }
+
+      res.json({
+        success: true,
+        message: 'Password reset email sent',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+module.exports = router;

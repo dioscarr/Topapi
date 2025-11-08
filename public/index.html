@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Topapi - Production API</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 60px 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #333;
+            font-size: 3em;
+            margin-bottom: 20px;
+        }
+        
+        p {
+            color: #666;
+            font-size: 1.2em;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 15px 30px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 1em;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+        
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+        
+        .features {
+            margin-top: 40px;
+            text-align: left;
+        }
+        
+        .feature {
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .feature:last-child {
+            border-bottom: none;
+        }
+        
+        .feature h3 {
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        
+        .feature p {
+            font-size: 0.95em;
+            margin: 0;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 8px 16px;
+            background: #10b981;
+            color: white;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <span class="status">✓ API Online</span>
+        <h1>🚀 Topapi</h1>
+        <p>Production-ready Node.js API with Express and Supabase integration</p>
+        
+        <div class="buttons">
+            <a href="/api-docs" class="btn btn-primary">API Documentation</a>
+            <a href="/api/health" class="btn btn-secondary">Health Check</a>
+        </div>
+        
+        <div class="features">
+            <div class="feature">
+                <h3>🔒 Secure Authentication</h3>
+                <p>JWT-based authentication with Supabase</p>
+            </div>
+            <div class="feature">
+                <h3>📚 API Explorer</h3>
+                <p>Interactive Swagger UI for testing endpoints</p>
+            </div>
+            <div class="feature">
+                <h3>⚡ Performance</h3>
+                <p>Rate limiting, caching, and optimized queries</p>
+            </div>
+            <div class="feature">
+                <h3>🛡️ Security</h3>
+                <p>Helmet.js, CORS, input validation, and error handling</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
