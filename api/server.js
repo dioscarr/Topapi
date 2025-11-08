@@ -33,6 +33,9 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
+// Trust proxy - must be set before rate limiter to properly identify clients
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {
@@ -45,10 +48,18 @@ app.use(helmet({
   },
 }));
 
-// CORS configuration
+// CORS configuration - allow frontend domain and localhost for development
 const corsOptions = {
-  origin: process.env.CORS_ORIGIN || 'https://phpstack-868870-5982515.cloudwaysapps.com',
+  origin: [
+    'https://phpstack-868870-5982515.cloudwaysapps.com',
+    'http://localhost:3000',
+    'http://localhost:4000',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:4000'
+  ],
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   optionsSuccessStatus: 200,
 };
 app.use(cors(corsOptions));
@@ -59,6 +70,12 @@ if (NODE_ENV === 'production') {
 } else {
   app.use(morgan('dev'));
 }
+
+// Additional request logging for debugging
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - Origin: ${req.get('origin') || 'N/A'}`);
+  next();
+});
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
