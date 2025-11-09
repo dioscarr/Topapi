@@ -99,6 +99,12 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   customCss: '.swagger-ui .topbar { display: none }',
 }));
 
+// API Documentation - JSON Schema
+app.get('/api-docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
+
 // API Routes
 app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
