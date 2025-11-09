@@ -52,7 +52,18 @@ router.get('/', authenticate, async (req, res, next) => {
 
     let query = supabase
       .from('inventory_items')
-      .select('*', { count: 'exact' })
+      .select(`
+        id,
+        name,
+        department,
+        category,
+        quantity,
+        min_quantity,
+        unit,
+        description,
+        created_at,
+        created_by
+      `, { count: 'exact' })
       .order('created_at', { ascending: false });
 
     if (search) {
@@ -112,7 +123,18 @@ router.get('/:id',
 
       const { data, error } = await supabase
         .from('inventory_items')
-        .select('*')
+        .select(`
+          id,
+          name,
+          department,
+          category,
+          quantity,
+          min_quantity,
+          unit,
+          description,
+          created_at,
+          created_by
+        `)
         .eq('id', id)
         .single();
 
@@ -144,19 +166,24 @@ router.get('/:id',
  *             type: object
  *             required:
  *               - name
+ *               - department
+ *               - category
  *               - quantity
+ *               - unit
  *             properties:
  *               name:
  *                 type: string
- *               description:
+ *               department:
+ *                 type: string
+ *               category:
  *                 type: string
  *               quantity:
  *                 type: integer
- *               price:
- *                 type: number
- *               category:
+ *               min_quantity:
+ *                 type: integer
+ *               unit:
  *                 type: string
- *               sku:
+ *               description:
  *                 type: string
  *     responses:
  *       201:
@@ -167,9 +194,11 @@ router.post('/',
   requireAdmin,
   [
     body('name').trim().notEmpty(),
+    body('department').trim().notEmpty(),
+    body('category').trim().notEmpty(),
     body('quantity').isInt({ min: 0 }),
-    body('price').optional().isFloat({ min: 0 }),
-    body('sku').optional().trim(),
+    body('min_quantity').optional().isInt({ min: 0 }),
+    body('unit').trim().notEmpty(),
   ],
   async (req, res, next) => {
     try {
@@ -178,17 +207,19 @@ router.post('/',
         throw new ApiError(400, 'Validation failed', true, JSON.stringify(errors.array()));
       }
 
-      const { name, description, quantity, price, category, sku } = req.body;
+      const { name, department, category, quantity, min_quantity, unit, description } = req.body;
 
       const { data, error } = await supabase
         .from('inventory_items')
         .insert({
           name,
-          description,
-          quantity,
-          price,
+          department,
           category,
-          sku,
+          quantity,
+          min_quantity,
+          unit,
+          description,
+          created_by: req.user.id,
         })
         .select()
         .single();
@@ -229,15 +260,17 @@ router.post('/',
  *             properties:
  *               name:
  *                 type: string
- *               description:
+ *               department:
+ *                 type: string
+ *               category:
  *                 type: string
  *               quantity:
  *                 type: integer
- *               price:
- *                 type: number
- *               category:
+ *               min_quantity:
+ *                 type: integer
+ *               unit:
  *                 type: string
- *               sku:
+ *               description:
  *                 type: string
  *     responses:
  *       200:
@@ -249,9 +282,11 @@ router.patch('/:id',
   [
     param('id').isUUID(),
     body('name').optional().trim().notEmpty(),
+    body('department').optional().trim().notEmpty(),
+    body('category').optional().trim().notEmpty(),
     body('quantity').optional().isInt({ min: 0 }),
-    body('price').optional().isFloat({ min: 0 }),
-    body('sku').optional().trim(),
+    body('min_quantity').optional().isInt({ min: 0 }),
+    body('unit').optional().trim().notEmpty(),
   ],
   async (req, res, next) => {
     try {
@@ -261,15 +296,16 @@ router.patch('/:id',
       }
 
       const { id } = req.params;
-      const { name, description, quantity, price, category, sku } = req.body;
+      const { name, department, category, quantity, min_quantity, unit, description } = req.body;
 
       const updates = {};
       if (name !== undefined) updates.name = name;
-      if (description !== undefined) updates.description = description;
-      if (quantity !== undefined) updates.quantity = quantity;
-      if (price !== undefined) updates.price = price;
+      if (department !== undefined) updates.department = department;
       if (category !== undefined) updates.category = category;
-      if (sku !== undefined) updates.sku = sku;
+      if (quantity !== undefined) updates.quantity = quantity;
+      if (min_quantity !== undefined) updates.min_quantity = min_quantity;
+      if (unit !== undefined) updates.unit = unit;
+      if (description !== undefined) updates.description = description;
 
       updates.updated_at = new Date().toISOString();
 
