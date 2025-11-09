@@ -1,5 +1,5 @@
 /**
- * Authentication Routes
+ * Authentication Routes 
  * 
  * Handles user authentication including signup, login, logout, and token refresh
  */
