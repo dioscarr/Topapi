@@ -155,7 +155,7 @@ router.post('/',
   [
     body('user_id').isUUID(),
     body('name').optional().trim(),
-    body('role').optional().isIn(['Admin', 'Staff']),
+    body('role').optional().isIn(['Admin', 'admin', 'Staff', 'staff']),
     body('language').optional().isIn(['en', 'es']),
   ],
   async (req, res, next) => {
@@ -177,7 +177,7 @@ router.post('/',
         .insert({
           user_id,
           name,
-          role: role || 'Staff',
+          role: (role || 'Staff').toLowerCase(),
           language: language || 'en',
         })
         .select()
@@ -234,7 +234,7 @@ router.patch('/:user_id',
   [
     param('user_id').isUUID(),
     body('name').optional().trim(),
-    body('role').optional().isIn(['Admin', 'Staff']),
+    body('role').optional().isIn(['Admin', 'admin', 'Staff', 'staff']),
     body('language').optional().isIn(['en', 'es']),
   ],
   async (req, res, next) => {
@@ -255,7 +255,7 @@ router.patch('/:user_id',
       const updates = {};
 
       if (name !== undefined) updates.name = name;
-      if (role !== undefined) updates.role = role;
+      if (role !== undefined) updates.role = role.toLowerCase();
       if (language !== undefined) updates.language = language;
 
       const { data, error } = await supabase
