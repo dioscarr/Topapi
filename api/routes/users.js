@@ -23,7 +23,7 @@ const { authenticate, requireAdmin } = require('../middleware/auth');
  * @swagger
  * /api/users:
  *   get:
- *     summary: Get all users (admin only)
+ *     summary: Get all users (authenticated users only)
  *     tags: [Users]
  *     parameters:
  *       - in: query
@@ -40,7 +40,7 @@ const { authenticate, requireAdmin } = require('../middleware/auth');
  *       200:
  *         description: List of users with profile information
  */
-router.get('/', authenticate, requireAdmin, async (req, res, next) => {
+router.get('/', authenticate, async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
