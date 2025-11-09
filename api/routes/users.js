@@ -47,7 +47,8 @@ router.get('/', authenticate, requireAdmin, async (req, res, next) => {
     const offset = (page - 1) * limit;
 
     // Get users from a users table (you'll need to create this in Supabase)
-    const { data, error, count } = await supabaseAdmin
+    const client = supabaseAdmin || supabase;
+    const { data, error, count } = await client
       .from('users')
       .select('*', { count: 'exact' })
       .range(offset, offset + limit - 1);

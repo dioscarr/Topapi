@@ -33,5 +33,8 @@ const supabaseAdmin = supabaseServiceKey ? createClient(supabaseUrl, supabaseSer
   }
 }) : null;
 
+console.log('Supabase Admin client created:', !!supabaseAdmin);
+console.log('Service key available:', !!supabaseServiceKey);
+
 module.exports = supabase;
 module.exports.admin = supabaseAdmin;
