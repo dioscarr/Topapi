@@ -184,10 +184,8 @@ router.patch('/:id',
       if (req.user.id !== id) {
         // Check if current user is admin
         const isAdmin = req.user.user_metadata && req.user.user_metadata.role === 'admin';
-        const allowedUserIds = ['b0277918-05c5-4892-bf45-c5f66a98eab6']; // dioscarr@gmail.com
-        const isAllowedUser = allowedUserIds.includes(req.user.id);
         
-        if (!isAdmin && !isAllowedUser) {
+        if (!isAdmin) {
           throw new ApiError(403, 'Forbidden: You can only update your own profile or need admin access');
         }
       }
@@ -254,10 +252,8 @@ router.delete('/:id',
       if (req.user.id !== id) {
         // Check if current user is admin
         const isAdmin = req.user.user_metadata && req.user.user_metadata.role === 'admin';
-        const allowedUserIds = ['b0277918-05c5-4892-bf45-c5f66a98eab6']; // dioscarr@gmail.com
-        const isAllowedUser = allowedUserIds.includes(req.user.id);
         
-        if (!isAdmin && !isAllowedUser) {
+        if (!isAdmin) {
           throw new ApiError(403, 'Forbidden: You can only delete your own profile or need admin access');
         }
       }
