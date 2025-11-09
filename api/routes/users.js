@@ -198,6 +198,27 @@ router.patch('/:id',
       if (language !== undefined) updates.language = language;
       updates.updated_at = new Date().toISOString();
 
+      // If any metadata fields are being updated, also update the auth metadata
+      if ((name !== undefined || role !== undefined || language !== undefined) && supabaseAdmin) {
+        // Get current user metadata to preserve other fields
+        const { data: userData, error: userError } = await supabaseAdmin.auth.admin.getUserById(id);
+        const currentMetadata = userData?.user?.user_metadata || {};
+        const updatedMetadata = { ...currentMetadata };
+        
+        if (name !== undefined) updatedMetadata.name = name;
+        if (role !== undefined) updatedMetadata.role = role;
+        if (language !== undefined) updatedMetadata.language = language;
+
+        const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(id, {
+          user_metadata: updatedMetadata
+        });
+
+        if (authError) {
+          console.error('Failed to update auth metadata:', authError);
+          // Don't fail the request, but log the error
+        }
+      }
+
       const { data, error } = await supabase
         .from('profiles')
         .update(updates)
