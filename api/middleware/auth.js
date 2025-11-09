@@ -65,7 +65,18 @@ const optionalAuth = async (req, res, next) => {
   }
 };
 
+/**
+ * Check if user is admin
+ */
+const requireAdmin = (req, res, next) => {
+  if (!req.user || !req.user.user_metadata || req.user.user_metadata.role !== 'admin') {
+    throw new ApiError(403, 'Admin access required');
+  }
+  next();
+};
+
 module.exports = {
   authenticate,
   optionalAuth,
+  requireAdmin,
 };

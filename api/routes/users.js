@@ -8,8 +8,9 @@ const express = require('express');
 const router = express.Router();
 const { body, param, validationResult } = require('express-validator');
 const supabase = require('../utils/supabase');
+const { admin: supabaseAdmin } = require('../utils/supabase');
 const { ApiError } = require('../middleware/errorHandler');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, requireAdmin } = require('../middleware/auth');
 
 /**
  * @swagger
@@ -39,14 +40,14 @@ const { authenticate } = require('../middleware/auth');
  *       200:
  *         description: List of users
  */
-router.get('/', authenticate, async (req, res, next) => {
+router.get('/', authenticate, requireAdmin, async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
 
     // Get users from a users table (you'll need to create this in Supabase)
-    const { data, error, count } = await supabase
+    const { data, error, count } = await supabaseAdmin
       .from('users')
       .select('*', { count: 'exact' })
       .range(offset, offset + limit - 1);
