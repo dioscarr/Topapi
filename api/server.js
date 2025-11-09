@@ -30,6 +30,8 @@ const profileRoutes = require('./routes/profiles');
 const healthRoutes = require('./routes/health');
 const inventoryRoutes = require('./routes/inventory');
 const categoriesRoutes = require('./routes/categories');
+const departmentsRoutes = require('./routes/departments');
+const activityLogRoutes = require('./routes/activity-log');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -114,6 +116,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/profiles', profileRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/categories', categoriesRoutes);
+app.use('/api/departments', departmentsRoutes);
+app.use('/api/activity-log', activityLogRoutes);
 
 // Serve static files for frontend SPA
 app.use(express.static(path.join(__dirname, '../public')));
