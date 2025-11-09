@@ -183,7 +183,8 @@ router.patch('/:id',
       // Check if user is updating their own profile or is admin
       if (req.user.id !== id) {
         // Check if current user is admin
-        const isAdmin = req.user.user_metadata && req.user.user_metadata.role === 'Admin';
+        const userRole = req.user.user_metadata?.role?.toLowerCase();
+        const isAdmin = userRole === 'admin';
         
         if (!isAdmin) {
           throw new ApiError(403, 'Forbidden: You can only update your own profile or need admin access');
@@ -194,7 +195,7 @@ router.patch('/:id',
       const updates = {};
 
       if (name !== undefined) updates.name = name;
-      if (role !== undefined) updates.role = role;
+      if (role !== undefined) updates.role = role.toLowerCase(); // Normalize role to lowercase
       if (language !== undefined) updates.language = language;
       updates.updated_at = new Date().toISOString();
 
@@ -206,7 +207,7 @@ router.patch('/:id',
         const updatedMetadata = { ...currentMetadata };
         
         if (name !== undefined) updatedMetadata.name = name;
-        if (role !== undefined) updatedMetadata.role = role;
+        if (role !== undefined) updatedMetadata.role = role.toLowerCase(); // Normalize role to lowercase
         if (language !== undefined) updatedMetadata.language = language;
 
         const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(id, {
@@ -272,7 +273,8 @@ router.delete('/:id',
       // Check if user is deleting their own profile or is admin
       if (req.user.id !== id) {
         // Check if current user is admin
-        const isAdmin = req.user.user_metadata && req.user.user_metadata.role === 'Admin';
+        const userRole = req.user.user_metadata?.role?.toLowerCase();
+        const isAdmin = userRole === 'admin';
         
         if (!isAdmin) {
           throw new ApiError(403, 'Forbidden: You can only delete your own profile or need admin access');

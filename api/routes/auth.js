@@ -8,6 +8,7 @@ const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const supabase = require('../utils/supabase');
+const { admin: supabaseAdmin } = require('../utils/supabase');
 const { ApiError } = require('../middleware/errorHandler');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 
@@ -66,11 +67,17 @@ router.post('/signup',
 
       const { email, password, metadata } = req.body;
 
+      // Normalize role to lowercase
+      const normalizedMetadata = {
+        ...metadata,
+        role: (metadata?.role || 'Staff').toLowerCase(),
+      };
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: { 
-          data: metadata || {},
+          data: normalizedMetadata,
         },
       });
 
@@ -83,9 +90,9 @@ router.post('/signup',
         .from('profiles')
         .insert({
           user_id: data.user.id,
-          name: metadata?.name || null,
-          role: metadata?.role || 'Staff',
-          language: metadata?.language || 'en',
+          name: normalizedMetadata.name || null,
+          role: normalizedMetadata.role,
+          language: normalizedMetadata.language || 'en',
         });
 
       if (profileError) {
