@@ -38,7 +38,7 @@ const { authenticate, requireAdmin } = require('../middleware/auth');
  *           default: 10
  *     responses:
  *       200:
- *         description: List of users
+ *         description: List of users with profile information
  */
 router.get('/', authenticate, requireAdmin, async (req, res, next) => {
   try {
@@ -46,19 +46,20 @@ router.get('/', authenticate, requireAdmin, async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
 
-    // Get users from a users table (you'll need to create this in Supabase)
+    // Get users by joining profiles with auth.users for complete user data
     const client = supabaseAdmin || supabase;
     
-    // First check if table exists
-    try {
-      await client.from('users').select('count', { count: 'exact', head: true });
-    } catch (tableError) {
-      throw new ApiError(500, 'Users table does not exist. Please run the database setup script.');
-    }
-    
     const { data, error, count } = await client
-      .from('users')
-      .select('*', { count: 'exact' })
+      .from('profiles')
+      .select(`
+        id,
+        user_id,
+        name,
+        role,
+        language,
+        created_at,
+        updated_at
+      `, { count: 'exact' })
       .range(offset, offset + limit - 1);
 
     if (error) {
@@ -94,7 +95,7 @@ router.get('/', authenticate, requireAdmin, async (req, res, next) => {
  *           type: string
  *     responses:
  *       200:
- *         description: User data
+ *         description: User profile data
  *       404:
  *         description: User not found
  */
@@ -111,8 +112,16 @@ router.get('/:id',
       const { id } = req.params;
 
       const { data, error } = await supabase
-        .from('users')
-        .select('*')
+        .from('profiles')
+        .select(`
+          id,
+          user_id,
+          name,
+          role,
+          language,
+          created_at,
+          updated_at
+        `)
         .eq('id', id)
         .single();
 
@@ -134,7 +143,7 @@ router.get('/:id',
  * @swagger
  * /api/users/{id}:
  *   patch:
- *     summary: Update user
+ *     summary: Update user profile
  *     tags: [Users]
  *     parameters:
  *       - in: path
@@ -149,19 +158,20 @@ router.get('/:id',
  *           schema:
  *             type: object
  *             properties:
- *               email:
+ *               name:
  *                 type: string
- *               metadata:
- *                 type: object
+ *               role:
+ *                 type: string
+ *               language:
+ *                 type: string
  *     responses:
  *       200:
- *         description: User updated successfully
+ *         description: User profile updated successfully
  */
 router.patch('/:id',
   authenticate,
   [
     param('id').isUUID(),
-    body('email').optional().isEmail().normalizeEmail(),
   ],
   async (req, res, next) => {
     try {
@@ -174,18 +184,26 @@ router.patch('/:id',
 
       // Check if user is updating their own profile or is admin
       if (req.user.id !== id) {
-        // You can add admin check here
-        throw new ApiError(403, 'Forbidden: You can only update your own profile');
+        // Check if current user is admin
+        const isAdmin = req.user.user_metadata && req.user.user_metadata.role === 'admin';
+        const allowedUserIds = ['b0277918-05c5-4892-bf45-c5f66a98eab6']; // dioscarr@gmail.com
+        const isAllowedUser = allowedUserIds.includes(req.user.id);
+        
+        if (!isAdmin && !isAllowedUser) {
+          throw new ApiError(403, 'Forbidden: You can only update your own profile or need admin access');
+        }
       }
 
-      const { email, metadata } = req.body;
+      const { name, role, language } = req.body;
       const updates = {};
 
-      if (email) updates.email = email;
-      if (metadata) updates.metadata = metadata;
+      if (name !== undefined) updates.name = name;
+      if (role !== undefined) updates.role = role;
+      if (language !== undefined) updates.language = language;
+      updates.updated_at = new Date().toISOString();
 
       const { data, error } = await supabase
-        .from('users')
+        .from('profiles')
         .update(updates)
         .eq('id', id)
         .select()
@@ -197,7 +215,7 @@ router.patch('/:id',
 
       res.json({
         success: true,
-        message: 'User updated successfully',
+        message: 'User profile updated successfully',
         data,
       });
     } catch (error) {
@@ -210,7 +228,7 @@ router.patch('/:id',
  * @swagger
  * /api/users/{id}:
  *   delete:
- *     summary: Delete user
+ *     summary: Delete user profile
  *     tags: [Users]
  *     parameters:
  *       - in: path
@@ -220,7 +238,7 @@ router.patch('/:id',
  *           type: string
  *     responses:
  *       200:
- *         description: User deleted successfully
+ *         description: User profile deleted successfully
  */
 router.delete('/:id',
   authenticate,
@@ -236,11 +254,18 @@ router.delete('/:id',
 
       // Check if user is deleting their own profile or is admin
       if (req.user.id !== id) {
-        throw new ApiError(403, 'Forbidden: You can only delete your own profile');
+        // Check if current user is admin
+        const isAdmin = req.user.user_metadata && req.user.user_metadata.role === 'admin';
+        const allowedUserIds = ['b0277918-05c5-4892-bf45-c5f66a98eab6']; // dioscarr@gmail.com
+        const isAllowedUser = allowedUserIds.includes(req.user.id);
+        
+        if (!isAdmin && !isAllowedUser) {
+          throw new ApiError(403, 'Forbidden: You can only delete your own profile or need admin access');
+        }
       }
 
       const { error } = await supabase
-        .from('users')
+        .from('profiles')
         .delete()
         .eq('id', id);
 
@@ -250,7 +275,7 @@ router.delete('/:id',
 
       res.json({
         success: true,
-        message: 'User deleted successfully',
+        message: 'User profile deleted successfully',
       });
     } catch (error) {
       next(error);
