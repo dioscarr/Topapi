@@ -69,9 +69,20 @@ const optionalAuth = async (req, res, next) => {
  * Check if user is admin
  */
 const requireAdmin = (req, res, next) => {
-  if (!req.user || !req.user.user_metadata || req.user.user_metadata.role !== 'admin') {
+  // Temporary: Allow specific user for testing
+  const allowedUserIds = ['b0277918-05c5-4892-bf45-c5f66a98eab6']; // dioscarr@gmail.com
+  
+  if (!req.user) {
     throw new ApiError(403, 'Admin access required');
   }
+  
+  const isAdmin = req.user.user_metadata && req.user.user_metadata.role === 'admin';
+  const isAllowedUser = allowedUserIds.includes(req.user.id);
+  
+  if (!isAdmin && !isAllowedUser) {
+    throw new ApiError(403, 'Admin access required');
+  }
+  
   next();
 };
 
