@@ -96,9 +96,10 @@ router.post('/signup',
         });
 
       if (profileError) {
-        // If profile creation fails, we should probably delete the user or handle it
-        // For now, log the error but don't fail the signup
+        // If profile creation fails, we should clean up by deleting the user
         console.error('Failed to create profile:', profileError);
+        await supabaseAdmin.auth.admin.deleteUser(data.user.id);
+        throw new ApiError(500, 'Failed to create user profile. User account has been cleaned up.');
       }
 
       res.status(201).json({

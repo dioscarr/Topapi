@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   CONSTRAINT profiles_language_check CHECK ((language = ANY (ARRAY['en'::text, 'es'::text]))),
-  CONSTRAINT profiles_role_check CHECK ((role = ANY (ARRAY['Admin'::text, 'Staff'::text])))
+  CONSTRAINT profiles_role_check CHECK ((role = ANY (ARRAY['admin'::text, 'staff'::text]))),
 );
 
 -- Enable Row Level Security
