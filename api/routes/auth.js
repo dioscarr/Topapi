@@ -51,7 +51,7 @@ const { authenticate, requireAdmin } = require('../middleware/auth');
  *         description: Admin access required
  */
 router.post('/signup',
-  authenticate,
+  authenticate, 
   requireAdmin,
   [
     body('email').isEmail().normalizeEmail(),
