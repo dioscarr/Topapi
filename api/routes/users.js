@@ -48,6 +48,14 @@ router.get('/', authenticate, requireAdmin, async (req, res, next) => {
 
     // Get users from a users table (you'll need to create this in Supabase)
     const client = supabaseAdmin || supabase;
+    
+    // First check if table exists
+    try {
+      await client.from('users').select('count', { count: 'exact', head: true });
+    } catch (tableError) {
+      throw new ApiError(500, 'Users table does not exist. Please run the database setup script.');
+    }
+    
     const { data, error, count } = await client
       .from('users')
       .select('*', { count: 'exact' })
