@@ -69,7 +69,7 @@ router.post('/signup',
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
+        options: { 
           data: metadata || {},
         },
       });
