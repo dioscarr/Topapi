@@ -9,7 +9,7 @@ const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const supabase = require('../utils/supabase');
 const { ApiError } = require('../middleware/errorHandler');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, requireAdmin } = require('../middleware/auth');
 
 /**
  * @swagger
@@ -22,9 +22,8 @@ const { authenticate } = require('../middleware/auth');
  * @swagger
  * /api/auth/signup:
  *   post:
- *     summary: Register a new user
+ *     summary: Register a new user (Admin only)
  *     tags: [Authentication]
- *     security: []
  *     requestBody:
  *       required: true
  *       content:
@@ -48,8 +47,12 @@ const { authenticate } = require('../middleware/auth');
  *         description: User created successfully
  *       400:
  *         description: Invalid input
+ *       403:
+ *         description: Admin access required
  */
 router.post('/signup',
+  authenticate,
+  requireAdmin,
   [
     body('email').isEmail().normalizeEmail(),
     body('password').isLength({ min: 6 }),
