@@ -116,8 +116,8 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 // SPA fallback - serve index.html for all non-API routes
 app.use((req, res, next) => {
-  // Skip if it's an API route
-  if (req.path.startsWith('/api')) {
+  // Skip if it's an API route or documentation route
+  if (req.path.startsWith('/api') || req.path.startsWith('/api-docs')) {
     return next();
   }
   
