@@ -183,7 +183,7 @@ router.patch('/:id',
       // Check if user is updating their own profile or is admin
       if (req.user.id !== id) {
         // Check if current user is admin
-        const isAdmin = req.user.user_metadata && req.user.user_metadata.role === 'admin';
+        const isAdmin = req.user.user_metadata && req.user.user_metadata.role === 'Admin';
         
         if (!isAdmin) {
           throw new ApiError(403, 'Forbidden: You can only update your own profile or need admin access');
@@ -272,7 +272,7 @@ router.delete('/:id',
       // Check if user is deleting their own profile or is admin
       if (req.user.id !== id) {
         // Check if current user is admin
-        const isAdmin = req.user.user_metadata && req.user.user_metadata.role === 'admin';
+        const isAdmin = req.user.user_metadata && req.user.user_metadata.role === 'Admin';
         
         if (!isAdmin) {
           throw new ApiError(403, 'Forbidden: You can only delete your own profile or need admin access');

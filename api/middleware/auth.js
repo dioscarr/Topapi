@@ -73,7 +73,7 @@ const requireAdmin = (req, res, next) => {
     throw new ApiError(403, 'Admin access required');
   }
   
-  const isAdmin = req.user.user_metadata && req.user.user_metadata.role === 'admin';
+  const isAdmin = req.user.user_metadata && req.user.user_metadata.role === 'Admin';
   
   if (!isAdmin) {
     throw new ApiError(403, 'Admin access required');
