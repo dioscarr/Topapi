@@ -78,6 +78,22 @@ router.post('/signup',
         throw new ApiError(400, error.message);
       }
 
+      // Create profile entry
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          user_id: data.user.id,
+          name: metadata?.name || null,
+          role: metadata?.role || 'Staff',
+          language: metadata?.language || 'en',
+        });
+
+      if (profileError) {
+        // If profile creation fails, we should probably delete the user or handle it
+        // For now, log the error but don't fail the signup
+        console.error('Failed to create profile:', profileError);
+      }
+
       res.status(201).json({
         success: true,
         message: 'User registered successfully',

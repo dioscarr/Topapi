@@ -42,13 +42,14 @@ CREATE INDEX IF NOT EXISTS users_email_idx ON public.users(email);
 -- Create profiles table for user profile information
 
 CREATE TABLE IF NOT EXISTS public.profiles (
-  id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
-  username TEXT UNIQUE,
-  full_name TEXT,
-  avatar_url TEXT,
-  bio TEXT,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
+  name TEXT NULL,
+  role TEXT NULL DEFAULT 'Staff'::text,
+  language TEXT NULL DEFAULT 'en'::text,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  CONSTRAINT profiles_language_check CHECK ((language = ANY (ARRAY['en'::text, 'es'::text]))),
+  CONSTRAINT profiles_role_check CHECK ((role = ANY (ARRAY['Admin'::text, 'Staff'::text])))
 );
 
 -- Enable Row Level Security
@@ -65,16 +66,15 @@ CREATE POLICY "Public profiles are viewable by everyone" ON public.profiles
   FOR SELECT USING (true);
 
 CREATE POLICY "Users can insert their own profile" ON public.profiles
-  FOR INSERT WITH CHECK (auth.uid() = id);
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "Users can update their own profile" ON public.profiles
-  FOR UPDATE USING (auth.uid() = id);
+  FOR UPDATE USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can delete their own profile" ON public.profiles
-  FOR DELETE USING (auth.uid() = id);
+  FOR DELETE USING (auth.uid() = user_id);
 
 -- Create indexes for better query performance
-CREATE INDEX IF NOT EXISTS profiles_username_idx ON public.profiles(username);
 CREATE INDEX IF NOT EXISTS profiles_created_at_idx ON public.profiles(created_at DESC);
 
 -- ============================================
@@ -109,26 +109,28 @@ CREATE TRIGGER on_profiles_updated
 -- AUTOMATIC PROFILE CREATION (OPTIONAL)
 -- ============================================
 -- Automatically create a profile when a new user signs up
+-- Note: Profiles are now created manually in the API signup route
 
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO public.profiles (id, full_name, avatar_url)
-  VALUES (
-    NEW.id,
-    NEW.raw_user_meta_data->>'full_name',
-    NEW.raw_user_meta_data->>'avatar_url'
-  );
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+-- CREATE OR REPLACE FUNCTION public.handle_new_user()
+-- RETURNS TRIGGER AS $$
+-- BEGIN
+--   INSERT INTO public.profiles (user_id, name, role, language)
+--   VALUES (
+--     NEW.id,
+--     COALESCE(NEW.raw_user_meta_data->>'name', NEW.raw_user_meta_data->>'full_name'),
+--     COALESCE(NEW.raw_user_meta_data->>'role', 'Staff'),
+--     COALESCE(NEW.raw_user_meta_data->>'language', 'en')
+--   );
+--   RETURN NEW;
+-- END;
+-- $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Trigger to create profile on user signup
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW
-  EXECUTE FUNCTION public.handle_new_user();
+-- DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+-- CREATE TRIGGER on_auth_user_created
+--   AFTER INSERT ON auth.users
+--   FOR EACH ROW
+--   EXECUTE FUNCTION public.handle_new_user();
 
 -- ============================================
 -- VERIFICATION

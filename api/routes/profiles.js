@@ -72,14 +72,14 @@ router.get('/', optionalAuth, async (req, res, next) => {
 
 /**
  * @swagger
- * /api/profiles/{id}:
+ * /api/profiles/{user_id}:
  *   get:
- *     summary: Get profile by ID
+ *     summary: Get profile by user ID
  *     tags: [Profiles]
  *     security: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: user_id
  *         required: true
  *         schema:
  *           type: string
@@ -89,22 +89,22 @@ router.get('/', optionalAuth, async (req, res, next) => {
  *       404:
  *         description: Profile not found
  */
-router.get('/:id',
+router.get('/:user_id',
   optionalAuth,
-  [param('id').isUUID()],
+  [param('user_id').isUUID()],
   async (req, res, next) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        throw new ApiError(400, 'Invalid profile ID');
+        throw new ApiError(400, 'Invalid user ID');
       }
 
-      const { id } = req.params;
+      const { user_id } = req.params;
 
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', id)
+        .eq('user_id', user_id)
         .single();
 
       if (error || !data) {
@@ -138,14 +138,14 @@ router.get('/:id',
  *             properties:
  *               user_id:
  *                 type: string
- *               username:
+ *               name:
  *                 type: string
- *               full_name:
+ *               role:
  *                 type: string
- *               avatar_url:
+ *                 enum: [Admin, Staff]
+ *               language:
  *                 type: string
- *               bio:
- *                 type: string
+ *                 enum: [en, es]
  *     responses:
  *       201:
  *         description: Profile created successfully
@@ -154,10 +154,9 @@ router.post('/',
   authenticate,
   [
     body('user_id').isUUID(),
-    body('username').optional().trim().isLength({ min: 3, max: 30 }),
-    body('full_name').optional().trim(),
-    body('avatar_url').optional().isURL(),
-    body('bio').optional().trim(),
+    body('name').optional().trim(),
+    body('role').optional().isIn(['Admin', 'Staff']),
+    body('language').optional().isIn(['en', 'es']),
   ],
   async (req, res, next) => {
     try {
@@ -166,7 +165,7 @@ router.post('/',
         throw new ApiError(400, 'Validation failed', true, JSON.stringify(errors.array()));
       }
 
-      const { user_id, username, full_name, avatar_url, bio } = req.body;
+      const { user_id, name, role, language } = req.body;
 
       // Verify that the authenticated user is creating their own profile
       if (req.user.id !== user_id) {
@@ -176,11 +175,10 @@ router.post('/',
       const { data, error } = await supabase
         .from('profiles')
         .insert({
-          id: user_id,
-          username,
-          full_name,
-          avatar_url,
-          bio,
+          user_id,
+          name,
+          role: role || 'Staff',
+          language: language || 'en',
         })
         .select()
         .single();
@@ -202,13 +200,13 @@ router.post('/',
 
 /**
  * @swagger
- * /api/profiles/{id}:
+ * /api/profiles/{user_id}:
  *   patch:
  *     summary: Update profile
  *     tags: [Profiles]
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: user_id
  *         required: true
  *         schema:
  *           type: string
@@ -219,26 +217,25 @@ router.post('/',
  *           schema:
  *             type: object
  *             properties:
- *               username:
+ *               name:
  *                 type: string
- *               full_name:
+ *               role:
  *                 type: string
- *               avatar_url:
+ *                 enum: [Admin, Staff]
+ *               language:
  *                 type: string
- *               bio:
- *                 type: string
+ *                 enum: [en, es]
  *     responses:
  *       200:
  *         description: Profile updated successfully
  */
-router.patch('/:id',
+router.patch('/:user_id',
   authenticate,
   [
-    param('id').isUUID(),
-    body('username').optional().trim().isLength({ min: 3, max: 30 }),
-    body('full_name').optional().trim(),
-    body('avatar_url').optional().isURL(),
-    body('bio').optional().trim(),
+    param('user_id').isUUID(),
+    body('name').optional().trim(),
+    body('role').optional().isIn(['Admin', 'Staff']),
+    body('language').optional().isIn(['en', 'es']),
   ],
   async (req, res, next) => {
     try {
@@ -247,27 +244,24 @@ router.patch('/:id',
         throw new ApiError(400, 'Validation failed', true, JSON.stringify(errors.array()));
       }
 
-      const { id } = req.params;
+      const { user_id } = req.params;
 
       // Check if user is updating their own profile
-      if (req.user.id !== id) {
+      if (req.user.id !== user_id) {
         throw new ApiError(403, 'Forbidden: You can only update your own profile');
       }
 
-      const { username, full_name, avatar_url, bio } = req.body;
+      const { name, role, language } = req.body;
       const updates = {};
 
-      if (username !== undefined) updates.username = username;
-      if (full_name !== undefined) updates.full_name = full_name;
-      if (avatar_url !== undefined) updates.avatar_url = avatar_url;
-      if (bio !== undefined) updates.bio = bio;
-
-      updates.updated_at = new Date().toISOString();
+      if (name !== undefined) updates.name = name;
+      if (role !== undefined) updates.role = role;
+      if (language !== undefined) updates.language = language;
 
       const { data, error } = await supabase
         .from('profiles')
         .update(updates)
-        .eq('id', id)
+        .eq('user_id', user_id)
         .select()
         .single();
 
@@ -288,13 +282,13 @@ router.patch('/:id',
 
 /**
  * @swagger
- * /api/profiles/{id}:
+ * /api/profiles/{user_id}:
  *   delete:
  *     summary: Delete profile
  *     tags: [Profiles]
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: user_id
  *         required: true
  *         schema:
  *           type: string
@@ -302,27 +296,27 @@ router.patch('/:id',
  *       200:
  *         description: Profile deleted successfully
  */
-router.delete('/:id',
+router.delete('/:user_id',
   authenticate,
-  [param('id').isUUID()],
+  [param('user_id').isUUID()],
   async (req, res, next) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        throw new ApiError(400, 'Invalid profile ID');
+        throw new ApiError(400, 'Invalid user ID');
       }
 
-      const { id } = req.params;
+      const { user_id } = req.params;
 
       // Check if user is deleting their own profile
-      if (req.user.id !== id) {
+      if (req.user.id !== user_id) {
         throw new ApiError(403, 'Forbidden: You can only delete your own profile');
       }
 
       const { error } = await supabase
         .from('profiles')
         .delete()
-        .eq('id', id);
+        .eq('user_id', user_id);
 
       if (error) {
         throw new ApiError(400, error.message);
