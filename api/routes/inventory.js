@@ -46,9 +46,11 @@ const { authenticate, requireAdmin } = require('../middleware/auth');
 router.get('/', authenticate, async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = Math.min(parseInt(req.query.limit) || 10, 100); // Max 100 items
     const offset = (page - 1) * limit;
     const search = req.query.search;
+    const department = req.query.department;
+    const category = req.query.category;
 
     let query = supabase
       .from('inventory_items')
@@ -66,8 +68,15 @@ router.get('/', authenticate, async (req, res, next) => {
       `, { count: 'exact' })
       .order('created_at', { ascending: false });
 
+    // Add filters
     if (search) {
       query = query.ilike('name', `%${search}%`);
+    }
+    if (department) {
+      query = query.eq('department', department);
+    }
+    if (category) {
+      query = query.eq('category', category);
     }
 
     const { data, error, count } = await query.range(offset, offset + limit - 1);
@@ -75,6 +84,11 @@ router.get('/', authenticate, async (req, res, next) => {
     if (error) {
       throw new ApiError(400, error.message);
     }
+
+    res.set({
+      'Cache-Control': 'private, max-age=300', // 5 minute cache
+      'X-Total-Count': count || 0,
+    });
 
     res.json({
       success: true,
@@ -379,4 +393,51 @@ router.delete('/:id',
   }
 );
 
-module.exports = router;
+/**
+ * @swagger
+ * /api/inventory/stats:
+ *   get:
+ *     summary: Get inventory statistics
+ *     tags: [Inventory]
+ *     responses:
+ *       200:
+ *         description: Inventory statistics
+ */
+router.get('/stats', authenticate, async (req, res, next) => {
+  try {
+    // Get total counts by department
+    const { data: deptStats, error: deptError } = await supabase
+      .from('inventory_items')
+      .select('department, quantity')
+      .not('quantity', 'is', null);
+
+    if (deptError) {
+      throw new ApiError(400, deptError.message);
+    }
+
+    // Calculate statistics
+    const stats = {
+      totalItems: deptStats?.length || 0,
+      totalQuantity: deptStats?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0,
+      departments: {},
+      lowStock: deptStats?.filter(item => item.quantity <= 5).length || 0,
+    };
+
+    // Group by department
+    deptStats?.forEach(item => {
+      if (!stats.departments[item.department]) {
+        stats.departments[item.department] = { count: 0, quantity: 0 };
+      }
+      stats.departments[item.department].count++;
+      stats.departments[item.department].quantity += item.quantity || 0;
+    });
+
+    res.set('Cache-Control', 'private, max-age=60'); // 1 minute cache
+    res.json({
+      success: true,
+      data: stats,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
