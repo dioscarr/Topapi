@@ -52,7 +52,6 @@ router.get('/', authenticate, requireAdmin, async (req, res, next) => {
     const { data, error, count } = await client
       .from('profiles')
       .select(`
-        id,
         user_id,
         name,
         role,
@@ -114,7 +113,6 @@ router.get('/:id',
       const { data, error } = await supabase
         .from('profiles')
         .select(`
-          id,
           user_id,
           name,
           role,
@@ -122,7 +120,7 @@ router.get('/:id',
           created_at,
           updated_at
         `)
-        .eq('id', id)
+        .eq('user_id', id)
         .single();
 
       if (error || !data) {
@@ -205,7 +203,7 @@ router.patch('/:id',
       const { data, error } = await supabase
         .from('profiles')
         .update(updates)
-        .eq('id', id)
+        .eq('user_id', id)
         .select()
         .single();
 
@@ -267,7 +265,7 @@ router.delete('/:id',
       const { error } = await supabase
         .from('profiles')
         .delete()
-        .eq('id', id);
+        .eq('user_id', id);
 
       if (error) {
         throw new ApiError(400, error.message);
