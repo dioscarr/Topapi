@@ -370,8 +370,6 @@ router.patch('/:id',
       if (unit !== undefined) updates.unit = unit;
       if (description !== undefined) updates.description = description;
 
-      updates.updated_at = new Date().toISOString();
-
       const { data, error } = await supabase
         .from('inventory_items')
         .update(updates)
