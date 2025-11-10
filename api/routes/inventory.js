@@ -254,7 +254,6 @@ router.get('/:id',
  */
 router.post('/',
   authenticate,
-  requireAdmin,
   [
     body('name').trim().notEmpty(),
     body('department').trim().notEmpty(),
