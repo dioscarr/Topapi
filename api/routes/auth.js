@@ -338,4 +338,56 @@ router.post('/reset-password',
   }
 );
 
+/**
+ * @swagger
+ * /api/auth/update-password:
+ *   post:
+ *     summary: Update password (requires authentication)
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - password
+ *             properties:
+ *               password:
+ *                 type: string
+ *                 minLength: 6
+ *     responses:
+ *       200:
+ *         description: Password updated successfully
+ */
+router.post('/update-password',
+  authenticate,
+  [body('password').isLength({ min: 6 })],
+  async (req, res, next) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        throw new ApiError(400, 'Validation failed', true, JSON.stringify(errors.array()));
+      }
+
+      const { password } = req.body;
+
+      const { error } = await supabase.auth.updateUser({
+        password: password
+      });
+
+      if (error) {
+        throw new ApiError(400, error.message);
+      }
+
+      res.json({
+        success: true,
+        message: 'Password updated successfully',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 module.exports = router;
