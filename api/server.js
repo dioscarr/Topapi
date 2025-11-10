@@ -56,7 +56,8 @@ app.use(helmet({
 const corsOptions = {
   origin: [
     'https://phpstack-868870-5982515.cloudwaysapps.com',
-    'https://topapi-production.up.railway.app','https://inv.topanimebar.com',
+    'https://topapi-production.up.railway.app',
+    'https://inv.topanimebar.com',
     'http://localhost:3000',
     'http://localhost:4000',
     'http://127.0.0.1:3000',
