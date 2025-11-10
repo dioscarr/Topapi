@@ -6,7 +6,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { body, validationResult } = require('express-validator');
+const { body, param, validationResult } = require('express-validator');
 const supabase = require('../utils/supabase');
 const { admin: supabaseAdmin } = require('../utils/supabase');
 const { ApiError } = require('../middleware/errorHandler');
