@@ -390,4 +390,70 @@ router.post('/update-password',
   }
 );
 
+/**
+ * @swagger
+ * /api/auth/admin/reset-password/{userId}:
+ *   post:
+ *     summary: Admin reset user password (Admin only)
+ *     tags: [Authentication]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - password
+ *             properties:
+ *               password:
+ *                 type: string
+ *                 minLength: 6
+ *     responses:
+ *       200:
+ *         description: Password reset successfully
+ *       403:
+ *         description: Admin access required
+ */
+router.post('/admin/reset-password/:userId',
+  authenticate,
+  requireAdmin,
+  [
+    param('userId').isUUID(),
+    body('password').isLength({ min: 6 })
+  ],
+  async (req, res, next) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        throw new ApiError(400, 'Validation failed', true, JSON.stringify(errors.array()));
+      }
+
+      const { userId } = req.params;
+      const { password } = req.body;
+
+      // Use admin client to update another user's password
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+        password: password
+      });
+
+      if (error) {
+        throw new ApiError(400, error.message);
+      }
+
+      res.json({
+        success: true,
+        message: 'Password reset successfully',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 module.exports = router;
