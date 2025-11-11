@@ -38,7 +38,10 @@ const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // Trust proxy - must be set before rate limiter to properly identify clients
-app.set('trust proxy', 1);
+// Trust proxy headers so we can read the real client IP (X-Forwarded-For) when
+// running behind a platform (Railway, Vercel, etc.). Use `true` to trust the
+// proxy chain -- adjust if you need a more restrictive value.
+app.set('trust proxy', true);
 
 // Security middleware
 app.use(helmet({
@@ -121,14 +124,52 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Rate limiting
+// Make limits configurable via environment variables so we can tune in
+// production without changing code.
+const RATE_LIMIT_WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000; // 15 minutes
+const RATE_LIMIT_MAX = parseInt(process.env.RATE_LIMIT_MAX, 10) || 100;
+
+function getClientIp(req) {
+  // Prefer X-Forwarded-For (may contain a comma-separated list)
+  const forwarded = req.headers['x-forwarded-for'] || req.headers['x-real-ip'];
+  if (forwarded && typeof forwarded === 'string') return forwarded.split(',')[0].trim();
+  // req.ip is provided by Express (respects trust proxy)
+  if (req.ip) return req.ip;
+  if (req.socket && req.socket.remoteAddress) return req.socket.remoteAddress;
+  return '';
+}
+
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.',
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  max: RATE_LIMIT_MAX,
+  message: 'Too many requests, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  // Use a per-user key when authenticated (avoids blocking multiple users
+  // sharing a single platform IP). Fall back to client IP.
+  keyGenerator: (req /*, res */) => {
+    try {
+      return req.user?.id || getClientIp(req) || 'unknown';
+    } catch (e) {
+      return getClientIp(req) || 'unknown';
+    }
+  },
+  // Skip OPTIONS preflight requests so CORS preflight doesn't count
+  // against the limit.
+  skip: (req /*, res */) => {
+    return req.method === 'OPTIONS';
+  },
 });
-app.use('/api/', limiter);
+// Allow disabling the rate limiter via env var for emergency/until tuned.
+// Set RATE_LIMIT_ENABLED=false to disable the app-level limiter.
+const RATE_LIMIT_ENABLED = (process.env.RATE_LIMIT_ENABLED || 'true').toLowerCase() !== 'false';
+
+if (RATE_LIMIT_ENABLED) {
+  app.use('/api/', limiter);
+  console.log(`🔒 Rate limiter: max=${RATE_LIMIT_MAX} windowMs=${RATE_LIMIT_WINDOW_MS} (skipping OPTIONS)`);
+} else {
+  console.log('⚠️ Rate limiter is DISABLED (RATE_LIMIT_ENABLED=false)');
+}
 
 // API Documentation - Swagger UI
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
