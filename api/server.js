@@ -53,16 +53,20 @@ app.use(helmet({
 }));
 
 // CORS configuration - allow frontend domain and localhost for development
+const corsOrigins = process.env.CORS_ORIGINS 
+  ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim())
+  : [
+      'https://phpstack-868870-5982515.cloudwaysapps.com',
+      'https://topapi-production.up.railway.app',
+      'https://inv.topanimebar.com',
+      'http://localhost:3000',
+      'http://localhost:4000',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:4000'
+    ];
+
 const corsOptions = {
-  origin: [
-    'https://phpstack-868870-5982515.cloudwaysapps.com',
-    'https://topapi-production.up.railway.app',
-    'https://inv.topanimebar.com',
-    'http://localhost:3000',
-    'http://localhost:4000',
-    'http://127.0.0.1:3000',
-    'http://127.0.0.1:4000'
-  ],
+  origin: corsOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -82,6 +86,9 @@ app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - Origin: ${req.get('origin') || 'N/A'}`);
   next();
 });
+
+// Log CORS configuration on startup
+console.log(`🌐 CORS Origins: ${corsOrigins.join(', ')}`);
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
