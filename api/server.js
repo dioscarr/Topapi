@@ -65,14 +65,40 @@ const corsOrigins = process.env.CORS_ORIGINS
       'http://127.0.0.1:4000'
     ];
 
+// Allow origins from the CORS_ORIGINS list and any subdomain of github.dev
+// We use a function for `origin` to support dynamic checks (including wildcard subdomains)
 const corsOptions = {
-  origin: corsOrigins,
+  origin: (origin, callback) => {
+    // If no origin (e.g., same-origin or server-to-server requests), allow
+    if (!origin) return callback(null, true);
+
+    // Allow explicit origins from the env/config list
+    if (corsOrigins && corsOrigins.includes(origin)) return callback(null, true);
+
+    // Allow any http(s) subdomain of github.dev, e.g. <user>.github.dev or <repo>.github.dev
+    const githubDevPattern = /^https?:\/\/[A-Za-z0-9-._]+\.github\.dev(?::\d+)?$/i;
+    if (githubDevPattern.test(origin)) return callback(null, true);
+
+    // Otherwise reject
+    return callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   optionsSuccessStatus: 200,
 };
-app.use(cors(corsOptions));
+app.use((req, res, next) => {
+  // Custom CORS handling middleware that delegates to the cors package
+  // This keeps logging behaviour intact while using the dynamic origin function above.
+  cors(corsOptions)(req, res, (err) => {
+    if (err) {
+      // When origin is not allowed, respond with 403 and a clear message
+      res.status(403).json({ error: 'CORS error: origin not allowed' });
+      return;
+    }
+    next();
+  });
+});
 
 // Request logging
 if (NODE_ENV === 'production') {
