@@ -83,8 +83,28 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
+/**
+ * Check if user is staff or admin
+ */
+const requireStaffOrAdmin = (req, res, next) => {
+  if (!req.user) {
+    throw new ApiError(403, 'Staff or admin access required');
+  }
+
+  const userRole = req.user.user_metadata?.role?.toLowerCase();
+  const isStaff = userRole === 'staff';
+  const isAdmin = userRole === 'admin';
+
+  if (!isStaff && !isAdmin) {
+    throw new ApiError(403, 'Staff or admin access required');
+  }
+
+  next();
+};
+
 module.exports = {
   authenticate,
   optionalAuth,
   requireAdmin,
+  requireStaffOrAdmin,
 };

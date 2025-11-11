@@ -9,7 +9,7 @@ const router = express.Router();
 const { body, param, validationResult } = require('express-validator');
 const supabase = require('../utils/supabase');
 const { ApiError } = require('../middleware/errorHandler');
-const { authenticate, requireAdmin } = require('../middleware/auth');
+const { authenticate, requireAdmin, requireStaffOrAdmin } = require('../middleware/auth');
 
 /**
  * @swagger
@@ -340,7 +340,7 @@ router.post('/',
  */
 router.patch('/:id',
   authenticate,
-  requireAdmin,
+  requireStaffOrAdmin,
   [
     param('id').isUUID(),
     body('name').optional().trim().notEmpty(),
@@ -409,7 +409,7 @@ router.patch('/:id',
  */
 router.delete('/:id',
   authenticate,
-  requireAdmin,
+  requireStaffOrAdmin,
   [param('id').isUUID()],
   async (req, res, next) => {
     try {
